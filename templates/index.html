@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Login</title>
+    </head>
+    <body>
+        {% if name=="unknown"%}
+        <h1>Login</h1>
+        <form action="/" method="POST">
+            <label for="name">Enter username: </label>
+            <input type="text" id="name" name="name" required>
+            <br>
+            <label for="pwd">Password:</label>
+            <input type="password" id="pwd" name="pwd">
+            <button type="submit">Next</button>
+        </form>
+        {% else %}
+        <h1>Hello {{name}}!</h1>                {#what happens when the button is pressed#}
+        {%endif%}
+    </body>
+</html>
