@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+    function dragstartHandler(ev) {
+        ev.dataTransfer.setData("text", ev.target.id);
+    }
+    function dragoverHandler(ev) {
+        ev.preventDefault();
+    }
+    let score = 0;
+    function dropHandler(ev) {
+    ev.preventDefault();
+
+    const blockId = ev.dataTransfer.getData("text");
+    const block = document.getElementById(blockId);
+    const draggedLetter = block.innerText;
+
+    const expectedLetter = ev.target.dataset.expected;
+    if (!expectedLetter || ev.target.children.length > 0) {
+        return;
+    }
+    ev.target.appendChild(block);
+
+    if (draggedLetter === expectedLetter) {
+        block.draggable = false;
+        ev.target.style.backgroundColor = "lightgreen";
+        score += 10;
+        console.log("Score:", score);
+        document.getElementById("score").innerText = score;
+
+    } else {
+        console.log("Wrong letter");
+        ev.target.style.backgroundColor = "red";
+
+    }
+}
+    function on() {
+        document.getElementById("overlay").style.display = "block";
+    }
+    function off() {
+        document.getElementById("overlay").style.display = "none";
+    }
+    function sendScoreToServer() {
+    fetch("/add_score", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            score: score
+        })
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log("Server:", data);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
+}
+</script>
+<!-- <script src="{{ url_for('static', filename='gameLogic.js') }}"></script> -->    
+<script src="{{ url_for('static', filename='gameLogic.js') }}"></script>
+<meta charset="UTF-8">
+<title>Blocs</title>
+<style>
+.container {
+    display: grid;
+    grid-template-columns: repeat(5,100px);
+    background-color: rgb(177, 40, 40);
+    grid-auto-rows:100px;
+    padding:10px;
+}
+.container> div {
+    border:1px solid black;
+    background-color: rgb(205, 208, 245);
+    padding: 10px;
+    font-size:30px;
+    text-align:center;
+}
+.grid-wrapper{
+    display: flex;
+    justify-content: center;
+    margin-top:40px;
+}
+.block {
+    width: 60px;
+    height: 60px;
+    background: black;
+    border-radius: 12px;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    cursor: grab;
+    user-select: none;
+}
+.piece {
+    display: grid;
+    gap: 0px;
+}
+.blocks-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+
+#text{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+
+</style>
+</head>
+<body>
+    <h1 style="text-align:center;">Game page</h1>
+    <h3>High score: {{ high_score }}</h3>
+    <button style="font-size:15px; width: 100px; height: 35px; float: right;" type="button" onclick="window.location.reload();">Next Game</button>
+    <div id="overlay" onclick="off()">
+    <div  id="text">Click anywhere to continue</div>
+    </div>
+    <br>
+    <br>
+    <button style="font-size:15px; width: 90px; height: 30px; float: right;" type="button" onclick="on()">Pause</button>
+    </div>
+    <h2 style="float: center; text-align: center;">Current Score: <span id="score">0</span></h2>
+
+
+<div class="grid-wrapper">
+    <div class="container" ondrop="dropHandler(event)" ondragover="dragoverHandler(event)">
+        <div data-expected="C"></div><div data-expected="A"></div><div  >C</div><div  >H</div>
+        <div  >E</div><div  >R</div><div  >O</div><div data-expected="B" ></div>
+        <div  >O</div><div data-expected="T" ></div><div  >S</div><div data-expected="T" ></div>
+        <div  >A</div><div  >C</div><div >K</div><div data-expected="V" ></div>
+        <div  >I</div><div  >R</div><div data-expected="U" ></div><div data-expected="S"></div>
+        <div  >L</div><div data-expected="O" ></div><div data-expected="G" ></div><div  >I</div>
+        <div  >N</div>
+    </div>
+    </div>
+<h2 style="text-align:center;">Blocks</h2>
+<div id="div1" ondrop="dropHandler(event)" ondragover="dragoverHandler(event)">
+</div>
+<div class="blocks-row">
+    <div class="block" id="blockA" draggable="true" ondragstart="dragstartHandler(event)">V</div>
+    <div class="block" id="blockB" draggable="true" ondragstart="dragstartHandler(event)">A</div>
+    <div class="block" id="blockC" draggable="true" ondragstart="dragstartHandler(event)">T</div>
+    <div class="block" id="blockD" draggable="true" ondragstart="dragstartHandler(event)">U</div>
+    <div class="block" id="blockE" draggable="true" ondragstart="dragstartHandler(event)">O</div>
+    <div class="block" id="blockG" draggable="true" ondragstart="dragstartHandler(event)">G</div>
+    <div class="block" id="blockH" draggable="true" ondragstart="dragstartHandler(event)">S</div>
+    <div class="block" id="blockI" draggable="true" ondragstart="dragstartHandler(event)">C</div>
+    <div class="block" id="blockJ" draggable="true" ondragstart="dragstartHandler(event)">B</div>
+    <div class="block" id="blockK" draggable="true" ondragstart="dragstartHandler(event)">T</div>
+
+
+</div>
+    <button style="float: right; font-size:15px; width: 90px; height: 40px;" onclick="sendScoreToServer()">Save Score</button>
+
+<br>
+
+    <form action="/logout" method="POST">
+        <button style="font-size:15px; width: 90px; height: 30px;"  type="submit">Logout</button>
+    </form>
+</body>
+</html>

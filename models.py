@@ -19,6 +19,9 @@ class User(Base):
     password_hash=Column(String, nullable=False)        
     access_level=Column(Enum(AccessLevel), default=AccessLevel.GENERAL)
     
+    score = Column(Integer, default=0)
+    high_score = Column(Integer, default=0)
+
     #set password using Argon2
     def set_password(self, password: str):
         self.password_hash = argon2.hash(password)

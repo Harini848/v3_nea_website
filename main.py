@@ -9,7 +9,7 @@ load_dotenv()
 app = Flask(__name__)
 
 app.secret_key = os.getenv("SECRET_KEY") 
-#create tables in the database of they dont exist yet
+#create tables in the database if they dont exist yet
 Base.metadata.create_all(bind=engine)
 
 
@@ -25,12 +25,12 @@ def index():
     #if user already loggen in
     if session.get('user_email'):
         return render_template("index.html")
-    
+    #will uncomment later
     #if user has exceeded 3 attempts
-    if session['attempts']>=3:
-        error="Too many failed login attempts. Please try again later."
-        db_session.close()
-        return render_template("index.html", error=error)
+    #if session['attempts']>=3:
+    #    error="Too many failed login attempts. Please try again later."
+    #    db_session.close()
+    #    return render_template("index.html", error=error)
     
     if request.method=="POST":
         email=request.form.get("email")
@@ -83,6 +83,50 @@ def logout():
     #reset attempt counters or other sessions, optional 
     session.pop('attempts', None)
     return redirect(url_for("index"))
+
+@app.route("/game")
+def game():
+    db_session = SessionLocal()
+
+    if not session.get("user_email"):
+        return redirect(url_for("index"))
+
+    user = db_session.query(User).filter_by(
+        email=session["user_email"]
+    ).first()
+
+    high_score = user.high_score
+    db_session.close()
+    return render_template(
+        "game.html",
+        high_score=high_score
+    )
+
+@app.route("/add_score", methods=["POST"])
+def add_score():
+    if not session.get("user_email"):
+        return "Not logged in", 403
+
+    data = request.get_json()
+    final_score = data.get("score")
+
+    if final_score is None:
+        return "No score provided", 400
+
+    db_session = SessionLocal()
+
+    user = db_session.query(User).filter_by(
+        email=session["user_email"]
+    ).first()
+    user.score = final_score
+
+    if user.score > user.high_score: 
+        user.high_score = user.score
+
+    db_session.commit()
+    db_session.close()
+
+    return "Score saved", 200
 
 if __name__=="__main__":
     app.run(debug=True)

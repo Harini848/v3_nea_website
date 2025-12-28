@@ -1,32 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Login</title>
-    </head>
-    <body>
-        {% if not session.get('user_email') %}
-        <h1>Login</h1>
-        {% if error %}
-            <p style="color:red;">{{ error }}</p>
-        {% endif %}
+<head>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 50px;
+    }
+    label {
+        display: inline-block;
+        width: 100px;
+        margin-bottom: 10px;
+    }
+    input {
+        margin-bottom: 10px;
+        padding: 5px;
+    }
+    button {
+        margin-top: 10px;
+    }
+    
+</style>
+    <title>Blocs Login</title>
 
-        <form action="/" method="POST">
-            <label for="email">Email: </label>
-            <input type="email" id="email" name="email" required autocomplete="off">
-            <br>
-            <label for="password">Password: </label>
-            <input type="password" id="password" name="password" required autocomplete="off">
-            <br>
-            <button type="submit">Next</button>
-            <p>New user?<a href="{{ url_for('register') }}">Register here</a></p>
+</head>
+<body>
+    {% if not session.get('user_email') %}
+    <h1 style="text-align:center;">Blocs Login</h1>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+    
+    <form action="/" method="POST">
+        <label for="email">Email: </label>
+        <input type="email" id="email" name="email" required autocomplete="off">
+        <br>
+        <label for="password">Password: </label>
+        <input type="password" id="password" name="password" required autocomplete="off">
+        <br>
+        <button style="font-size:15px; width: 90px; height: 30px;" type="submit">Next</button>
+        <p>New user? <a href="{{ url_for('register') }}">Register here</a></p>
 
-        </form>
-        {% else %}
-        <h1>Welcome back, {{ session['user_email'] }}!</h1>                {#what happens when the button is pressed#}
-        <form action="/logout" method="POST">
-            <button type="submit">Logout</button>
-        </form>
-        {%endif%}
-
+    </form>
+    {% else %}
+    <h1>Welcome, {{ session['user_email'] }}!</h1>                {#what happens when the button is pressed#}
+    <a href="/game">Start Blocs Game</a>
+    <form action="/logout" method="POST">
+        <button style="font-size:15px; width: 90px; height: 30px;" type="submit">Logout</button>
+    </form>
+    {%endif%}
 </body>
 </html>
