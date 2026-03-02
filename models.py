@@ -30,3 +30,10 @@ class User(Base):
     def check_password(self, password: str) -> bool:
         return argon2.verify(password, self.password_hash)
     
+class Word(Base):
+    __tablename__ = "words"
+
+    id = Column(Integer, primary_key=True)
+    word = Column(String, nullable=False)
+    difficulty = Column(String, nullable=False)
+    
