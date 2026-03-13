@@ -24,12 +24,15 @@
 
 </head>
 <body>
+    <!-- Check if user is logged in using session variable -->
     {% if not session.get('user_email') %}
     <h1 style="text-align:center;">Blocs Login</h1>
+    <!-- If an error message exists the display it to user -->
     {% if error %}
         <p style="color:red;">{{ error }}</p>
     {% endif %}
     
+    <!-- Login Form that sends user details to Flask server -->
     <form action="/" method="POST">
         <label for="email">Email: </label>
         <input type="email" id="email" name="email" required autocomplete="off">
@@ -37,15 +40,28 @@
         <label for="password">Password: </label>
         <input type="password" id="password" name="password" required autocomplete="off">
         <br>
+        <!-- Submit Button -->
         <button style="font-size:15px; width: 90px; height: 30px;" type="submit">Next</button>
+        <!-- Link to registration page for new users -->
         <p>New user? <a href="{{ url_for('register') }}">Register here</a></p>
 
     </form>
     {% else %}
-    <h1>Welcome, {{ session['user_email'] }}!</h1>                {#what happens when the button is pressed#}
-    <a href="/game">Start Blocs Game</a>
+    <!-- if user is logged in then display welcome message -->
+    <h1>Welcome, {{ session['user_email'] }}!</h1>               
+    <form action="{{ url_for('new_game') }}" method="POST">
+    <!-- Dropdown to select game difficulty -->
+    <select style="font-size:15px; width: 100px; height: 35px;" name="difficulty" required>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <br>
+    <button style="font-size:15px; width: 100px; height: 35px;" type="submit">Start Game</button>
+    </form>
+    <!-- Logout Form to end current session -->
     <form action="/logout" method="POST">
-        <button style="font-size:15px; width: 90px; height: 30px;" type="submit">Logout</button>
+        <button style="font-size:15px; width: 90px; height: 30px;"  type="submit">Logout</button>
     </form>
     {%endif%}
 </body>

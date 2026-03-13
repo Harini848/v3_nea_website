@@ -44,7 +44,6 @@ def build_game(words):
 def index():
     db_session = SessionLocal()
     error = None 
-    #add code
     #initialise attempt counter if missing
     if 'attempts' not in session:
         session['attempts']=0
@@ -52,12 +51,10 @@ def index():
     #if user already loggen in
     if session.get('user_email'):
         return render_template("index.html")
-    #will uncomment later
-    #if user has exceeded 3 attempts
-    #if session['attempts']>=3:
-    #    error="Too many failed login attempts. Please try again later."
-    #    db_session.close()
-    #    return render_template("index.html", error=error)
+    if session['attempts']>=3:
+        error="Too many failed login attempts. Please try again later."
+        db_session.close()
+        return render_template("index.html", error=error)
     
     if request.method=="POST":
         email=request.form.get("email")
@@ -114,14 +111,13 @@ def logout():
 @app.route("/new_game", methods=["GET", "POST"])
 def new_game():
     if not session.get("user_email"):
-        return redirect(url_for("index"))
-
+        return redirect(url_for("index"))    
     db_session = SessionLocal()
 
     difficulty = request.form.get("difficulty")
 
     if not difficulty:
-        difficulty = "easy"  # default fallback
+        difficulty = 'easy'  # default fallback
 
     words_query = db_session.query(Word).filter_by(difficulty=difficulty).all()
 

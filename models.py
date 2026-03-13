@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Enum
 from sqlalchemy.ext.declarative import declarative_base
-import enum
+import enum               #to define user access levels
 from passlib.hash import argon2 
-
+#Base class used by SQLAlchemy to define database models
 Base=declarative_base()
 
 #declare the AccessLevel Object
@@ -18,7 +18,7 @@ class User(Base):
     email=Column(String, unique=True, nullable=False)
     password_hash=Column(String, nullable=False)        
     access_level=Column(Enum(AccessLevel), default=AccessLevel.GENERAL)
-    
+    #Game stats for each player
     score = Column(Integer, default=0)
     high_score = Column(Integer, default=0)
 
@@ -30,10 +30,13 @@ class User(Base):
     def check_password(self, password: str) -> bool:
         return argon2.verify(password, self.password_hash)
     
+#word table storing words used in the game
 class Word(Base):
     __tablename__ = "words"
-
+    #unique id for each word
     id = Column(Integer, primary_key=True)
     word = Column(String, nullable=False)
     difficulty = Column(String, nullable=False)
+    
+
     

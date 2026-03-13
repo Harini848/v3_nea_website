@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
     function dragstartHandler(ev) {
         ev.dataTransfer.setData("text", ev.target.id);
@@ -10,7 +11,7 @@
         ev.preventDefault();
     }
     let score = 0;
-    function dropHandler(ev) {
+    function letter_validation(ev) {
     ev.preventDefault();
 
     const blockId = ev.dataTransfer.getData("text");
@@ -23,6 +24,20 @@
     }
     ev.target.appendChild(block);
 
+    // always update remaining-blocks based on what's still in the source row
+    const remainingBlocks = document.querySelectorAll(".blocks-row .block").length;
+    if (remainingBlocks === 0) {
+        confetti({
+            particleCount: 300,
+            spread: 150,
+            startVelocity: 50,
+            origin: { y: 0.6 }
+        });
+
+        document.getElementById("text").innerText = "Well done! You placed all the blocks.";
+        on();
+    }
+
     if (draggedLetter === expectedLetter) {
         block.draggable = false;
         ev.target.style.backgroundColor = "lightgreen";
@@ -30,10 +45,25 @@
         console.log("Score:", score);
         document.getElementById("score").innerText = score;
 
+        if (score === 100) {
+            confetti({
+                particleCount: 150,
+                spread: 90,
+                origin: { y: 0.6 }
+            });
+
+            document.getElementById("text").innerText = 
+            "PERFECT SCORE!! You can save score and logout or start a new game.";
+            on();
+            confetti({
+                particleCount: 150,
+                spread: 90,
+                origin: { y: 0.6 }
+            });
+        }
     } else {
         console.log("Wrong letter");
         ev.target.style.backgroundColor = "red";
-
     }
 }
     function on() {
@@ -83,7 +113,7 @@
 .grid-wrapper{
     display: flex;
     justify-content: center;
-    margin-top:40px;
+    margin-top:20px;
 }
 .block {
     width: 60px;
@@ -118,7 +148,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.724);
   z-index: 2;
   cursor: pointer;
 }
@@ -136,15 +166,21 @@
 </head>
 <body>
 
-    <h1 style="text-align:center;">game_2 Blocs Game page</h1>
+    <h1 style="text-align:center;">Blocs</h1>
+    <br>
     <h3>High score: {{ high_score }}</h3>
     <div style="float: right;">
         <div style="margin-bottom: 10px;">
         <form action="{{ url_for('new_game') }}" method="POST">
-            <button style="font-size:15px; width: 100px; height: 35px;">Next Game</button>
-        </form>
-        <br>
-        <br>
+    <select style="font-size:15px; width: 100px; height: 35px;" name="difficulty" required>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <br>
+    <button style="font-size:15px; width: 100px; height: 35px;" type="submit">Next game</button>
+    </form>
+    </div>
         <button style="font-size:15px; width: 100px; height: 35px;" onclick="on()">Pause</button>
     </div>
     <div id="overlay" onclick="off()">
@@ -154,14 +190,6 @@
     <br>
     </div>    <h2 style="float: center; text-align: center;">Current Score: <span id="score">0</span></h2>
 
-<form action="{{ url_for('new_game') }}" method="POST">
-    <select name="difficulty" required>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-    </select>
-    <button type="submit">Start Game</button>
-</form>
 
 <div class="grid-wrapper">
   <div class="container">
@@ -171,7 +199,7 @@
         {% if grid[r][c] == "" %}
           <div
             data-expected="{{ solution[r][c] }}"
-            ondrop="dropHandler(event)"
+            ondrop="letter_validation(event)"
             ondragover="dragoverHandler(event)">
           </div>
         {% else %}
@@ -183,8 +211,8 @@
   </div>
 </div>
 
-<h2 style="text-align:center;">Blocks</h2>
-<div id="div1" ondrop="dropHandler(event)" ondragover="dragoverHandler(event)">
+<h2 style="text-align:center;"></h2>
+<div id="div1" ondrop="letter_validation(event)" ondragover="dragoverHandler(event)">
 </div>
 <div class="blocks-row">
   {% for letter in blocks %}
