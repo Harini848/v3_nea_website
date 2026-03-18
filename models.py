@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship #to define relationships between tables
+from datetime import datetime
 import enum               #to define user access levels
 from passlib.hash import argon2 
 #Base class used by SQLAlchemy to define database models
@@ -37,6 +39,22 @@ class Word(Base):
     id = Column(Integer, primary_key=True)
     word = Column(String, nullable=False)
     difficulty = Column(String, nullable=False)
+
+#game session table to store each game played by users
+class GameSession(Base):
+    __tablename__="game_sessions"
+
+    id=Column(Integer, primary_key=True, index=True)
+    user_id=Column(Integer, ForeignKey("users.id"), nullable=False) #foreign key to link to user
+    difficulty=Column(String, nullable=False) #difficulty level of the game
+    score=Column(Integer, nullable=False) #score achieved in the game
+    time_taken=Column(Integer, nullable=False) #time taken in seconds
+    date_played=Column(DateTime, default=datetime.utcnow) #timestamp of when the game was played
+
+    #relationship to access user details from game session
+    user=relationship("User", backref="game_sessions") 
+
+
     
 
     

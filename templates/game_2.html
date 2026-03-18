@@ -4,21 +4,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
+    //Handles starting to drag a block
     function dragstartHandler(ev) {
         ev.dataTransfer.setData("text", ev.target.id);
     }
+    //Handles dropping a block into a cell grid
     function dragoverHandler(ev) {
         ev.preventDefault();
     }
+    //Validates whether the dropped block is allowed in the target cell 
+    const difficulty = "{{ difficulty }}";
     let score = 0;
     function letter_validation(ev) {
     ev.preventDefault();
-
+    
+    // Retrieve dragged block and letter it contains 
     const blockId = ev.dataTransfer.getData("text");
     const block = document.getElementById(blockId);
     const draggedLetter = block.innerText;
-
+    
+    // Get expected letter for this cell from data attribute
     const expectedLetter = ev.target.dataset.expected;
+    // If cell already has a block or no expected letter, do nothing
     if (!expectedLetter || ev.target.children.length > 0) {
         return;
     }
@@ -26,7 +33,12 @@
 
     // always update remaining-blocks based on what's still in the source row
     const remainingBlocks = document.querySelectorAll(".blocks-row .block").length;
+   
     if (remainingBlocks === 0) {
+
+        stopTimer(); // stop timer automatically when all blocks are placed
+       
+        // All blocks placed, display confetti and congratulations message
         confetti({
             particleCount: 300,
             spread: 150,
@@ -34,13 +46,14 @@
             origin: { y: 0.6 }
         });
 
-        document.getElementById("text").innerText = "Well done! You placed all the blocks.";
+        document.getElementById("text").innerText = "Well done! You can save score and logout or start a new game.";
         on();
     }
-
+    // Check if the dragged letter matches the expected letter for this cell
     if (draggedLetter === expectedLetter) {
         block.draggable = false;
         ev.target.style.backgroundColor = "lightgreen";
+        //Update score and display it
         score += 10;
         console.log("Score:", score);
         document.getElementById("score").innerText = score;
@@ -52,6 +65,7 @@
                 origin: { y: 0.6 }
             });
 
+            // Display perfect score message and confetti
             document.getElementById("text").innerText = 
             "PERFECT SCORE!! You can save score and logout or start a new game.";
             on();
@@ -61,35 +75,160 @@
                 origin: { y: 0.6 }
             });
         }
+    // If the letter is wrong, give feedback and allow player to try again
     } else {
         console.log("Wrong letter");
         ev.target.style.backgroundColor = "red";
     }
 }
     function on() {
+        isPaused=true; //pause timer
         document.getElementById("overlay").style.display = "block";
     }
     function off() {
+        isPaused=false; //pause timer
         document.getElementById("overlay").style.display = "none";
     }
+    function pause() {
+        //if (gameFinished) return;  Don't allow pausing if game is finished
+        isPaused=true; //pause timer
+        document.getElementById("text").innerHTML = "Click anywhere to continue";
+        document.getElementById("overlay").style.display = "block";
+    }   
+
     function sendScoreToServer() {
-    fetch("/add_score", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            score: score
+        fetch("/add_score", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                score: score,
+                difficulty: difficulty,
+                time_taken: timerSeconds
+            })
         })
-    })
-    .then(response => response.text())
-    .then(data => {
-        console.log("Server:", data);
-    })
-    .catch(error => {
-        console.error("Error:", error);
-    });
-}
+        .then(response => response.json())
+        .then(data => {
+            console.log("Server:", data);
+            // Display final score with time bonus
+            document.getElementById("score").innerText = data.final_score;
+            // After test 12, reload the page
+            location.reload();
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+    // Timer variables
+    let timerSeconds=0; //how many secs have passed
+    let timerInterval=null; // repeating timer
+    let isPaused=false; //whether pause is on
+    let gameFinished=false; // stops timer from continuing once game ends
+    let fiveMin=false; // whether 5 min have passed 
+
+    // Start the timer when the page loads
+    function updateTimerDisplay() {
+        // Calculate minutes and seconds from total seconds
+        let minutes = Math.floor(timerSeconds/60);
+        let seconds = timerSeconds % 60;
+
+        let formattedMinutes = String(minutes).padStart(2, '0');// ensures minutes are always 2 digits
+        let formattedSeconds = String(seconds).padStart(2, '0');// ensures seconds are always 2 digits
+
+        // Update the timer display on the page using session variable
+        document.getElementById("timerDisplay").textContent=`${formattedMinutes}:${formattedSeconds}`;
+    }
+
+    function autoEndGame() {
+        if (gameFinished) return; 
+        
+        stopTimer(); //stop timer
+        isPaused=true; //pause game
+
+        document.getElementById("text").innerHTML = "somthing sensible";
+        document.getElementById("overlay").style.display = "block";
+        document.getElementById("overlayButtons").style.display = "none";
+        // Send score to server and then logout
+        fetch("/add_score", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                score: score,
+                difficulty: difficulty,
+                time_taken: timerSeconds
+            })
+        })
+        .then(response => {         // Check if response is ok (status code 200-299)   
+            if (!response.ok) {
+                throw new Error("Server returned"+response.status);
+            }
+            return response.text();
+        })
+        .then(data => {            // Handle the response data
+            console.log("Server:", data);
+            document.getElementById("text").innerHTML=
+            "Time's up! Your score has been saved. You will be logged out shortly.";
+            setTimeout(() => {
+                //document.getElementById("autoLogoutForm").submit(); 
+                //location.reload();
+                window.location.href = "/logout"; // Redirect to logout route
+            }, 2000);
+        })
+        .catch(error => {      // Handle any errors that occurred during the fetch request
+            console.error("Error:", error);
+            document.getElementById("text").innerHTML=
+            "Problem saving your score. Error: " + error.message;
+        });
+    }
+
+    function startTimer() {
+        if (timerInterval !== null) return; // So multiple timers aren't running
+
+        timerInterval = setInterval(() =>{
+            if (!isPaused && !gameFinished) { //only increases if game isn't paused
+                timerSeconds++;
+                updateTimerDisplay();
+            }
+            //after 3mins, user chooses to continue or stop
+            if(timerSeconds === 180 && !fiveMin){
+                fiveMin=true;
+                //pause game and show overlay with continue or stop options
+                document.getElementById("text").innerHTML = "Been 3 mins! Continue or stop?";
+                document.getElementById("overlay").style.display = "block";
+                document.getElementById("overlayButtons").style.display = "block";  
+            }
+            if(timerSeconds === 300 && !fiveMin){
+                fiveMin=true;
+                document.getElementById("text").innerHTML = "Been 5 mins! Stopping game.";
+                stopGameEarly(new Event("click")); //automatically end game after 5 mins
+            }
+        }, 1000);
+
+        
+    }    
+    function continueGame(ev) {
+        ev.stopPropagation(); // Prevent the click from propagating to the overlay
+        isPaused=false; //resume timer
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("overlayButtons").style.display = "none"; 
+    }
+    function stopGameEarly(ev) {
+        ev.stopPropagation(); // Prevent the click from propagating to the overlay
+        autoEndGame(); //stop timer
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerInterval=null;
+        gameFinished=true; //stops timer from increasing if game is finished
+    }
+    window.onload = function() {
+        updateTimerDisplay(); // Initialise timer display
+        startTimer(); // Start the timer when the page loads
+    }
 </script>
 <!--<script src="{{ url_for('static', filename='gameLogic.js') }}"></script>-->
 <meta charset="UTF-8">
@@ -162,6 +301,25 @@
   transform: translate(-50%,-50%);
   -ms-transform: translate(-50%,-50%);
 }
+#timerText {
+    font-size: 23px;
+    font-weight: bold;
+    text-align: left;
+    color: rgb(177, 40, 40);
+}
+
+#timerDisplay {
+    font-size: 23px;
+    font-weight: bold;
+    color: rgb(177, 40, 40);
+    /* animation: pulse 1s infinite; */
+}
+
+@keyframes pulse {
+    0% { text-shadow: 0 0 5px rgb(34, 0, 255); }
+    50% { text-shadow: 0 0 20px rgb(0, 255, 238); }
+    100% { text-shadow: 0 0 5px rgb(255, 255, 255); }
+}
 </style>
 </head>
 <body>
@@ -169,33 +327,47 @@
     <h1 style="text-align:center;">Blocs</h1>
     <br>
     <h3>High score: {{ high_score }}</h3>
+    <!-- Timer start -->
+    <div id="gameInfo">
+        <p id="timerText">Time: <span id="timerDisplay">00:00</span></p>
+    </div>
     <div style="float: right;">
         <div style="margin-bottom: 10px;">
+        <!--Form that allows player to start a new game-->
         <form action="{{ url_for('new_game') }}" method="POST">
+    <!-- Dropdown menu for selecting game difficulty -->
     <select style="font-size:15px; width: 100px; height: 35px;" name="difficulty" required>
         <option value="easy">Easy</option>
         <option value="medium">Medium</option>
         <option value="hard">Hard</option>
     </select>
     <br>
+    <!-- Submit button sends selected difficulty to the Flask route-->
     <button style="font-size:15px; width: 100px; height: 35px;" type="submit">Next game</button>
     </form>
     </div>
-        <button style="font-size:15px; width: 100px; height: 35px;" onclick="on()">Pause</button>
+        <!-- Pause button-->
+        <button style="font-size:15px; width: 100px; height: 35px;" onclick="pause()">Pause</button>
     </div>
     <div id="overlay" onclick="off()">
     <div  id="text">Click anywhere to continue</div>
+    <div id="overlayButtons" style="display:none; position:absolute; top:60%; left:50%; transform:translate(-50%, -50%);">
+        <!-- Overlay buttons when 3mins is up-->
+        <button type="button" style="font-size:15px; width: 100px; height: 35px;" onclick="continueGame(event)">Continue</button>
+        <button type="button" style="font-size:15px; width: 100px; height: 35px;" onclick="stopGameEarly(event)">Stop</button>
+    </div>
     </div>
     <br>
     <br>
-    </div>    <h2 style="float: center; text-align: center;">Current Score: <span id="score">0</span></h2>
+    <h2 style=" text-align: center;">Current Score: <span id="score">0</span></h2>
 
 
 <div class="grid-wrapper">
   <div class="container">
+    <!-- Generate the 5x5 grid using nested loops-->
     {% for r in range(5) %}
       {% for c in range(5) %}
-        
+        <!-- If cell is empty, create a drop zone for letter block-->
         {% if grid[r][c] == "" %}
           <div
             data-expected="{{ solution[r][c] }}"
@@ -203,6 +375,7 @@
             ondragover="dragoverHandler(event)">
           </div>
         {% else %}
+        <!-- If cell has a letter, display it-->
           <div>{{ grid[r][c] }}</div>
         {% endif %}
 
@@ -226,6 +399,8 @@
     <button style="float: right; font-size:15px; width: 90px; height: 40px;" onclick="sendScoreToServer()">Save Score</button>
 
 <br>
+    <form id="autoLogoutForm" action="/logout" method="POST" style="display:none;">
+    </form>
 
     <form action="/logout" method="POST">
         <button style="font-size:15px; width: 90px; height: 30px;"  type="submit">Logout</button>
